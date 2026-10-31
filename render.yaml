@@ -2,13 +2,21 @@ services:
   - type: web
     name: climatemacro-api
     runtime: python
-    plan: free
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
+    disk:
+      name: climatemacro-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
+      - key: DOCUMENTS_DIR
+        value: /var/data/documents
+      - key: CHROMA_DIR
+        value: /var/data/chroma_db
       - key: FRONTEND_ORIGINS
         value: http://localhost:5173,http://127.0.0.1:5173,https://climatemacro.netlify.app
       - key: GROQ_API_KEY

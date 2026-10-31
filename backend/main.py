@@ -1,12 +1,13 @@
 
 import os
 from pathlib import Path
+from uuid import uuid4
 
 import pandas as pd
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from backend.rag import index_pdfs, ask_climate_question
+from backend.rag import DOCUMENTS_DIR, index_pdfs, ask_climate_question
 
 # Project paths
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -162,6 +163,55 @@ class ChatRequest(BaseModel):
 @app.post("/rag/index")
 def index_climate_documents():
     return index_pdfs()
+
+
+@app.post("/rag/upload")
+async def upload_climate_document(file: UploadFile = File(...)):
+    original_name = Path((file.filename or "").replace("\\", "/")).name
+
+    if (
+        not original_name
+        or "\x00" in original_name
+        or len(original_name) > 255
+        or Path(original_name).suffix.lower() != ".pdf"
+    ):
+        raise HTTPException(status_code=400, detail="Upload a PDF file.")
+
+    DOCUMENTS_DIR.mkdir(parents=True, exist_ok=True)
+    stored_path = DOCUMENTS_DIR / f"{uuid4().hex}.pdf"
+    max_size_bytes = 20 * 1024 * 1024
+    total_bytes = 0
+    header = b""
+
+    try:
+        with stored_path.open("wb") as destination:
+            while chunk := await file.read(1024 * 1024):
+                total_bytes += len(chunk)
+                if total_bytes > max_size_bytes:
+                    raise HTTPException(
+                        status_code=413,
+                        detail="PDF must be 20 MB or smaller.",
+                    )
+
+                if len(header) < 5:
+                    header += chunk[: 5 - len(header)]
+                destination.write(chunk)
+
+        if not header.startswith(b"%PDF-"):
+            raise HTTPException(
+                status_code=400,
+                detail="The uploaded file is not a valid PDF.",
+            )
+
+        result = index_pdfs([stored_path], {stored_path: original_name})
+        result["uploaded_file"] = original_name
+        result["stored"] = True
+        return result
+    except Exception:
+        stored_path.unlink(missing_ok=True)
+        raise
+    finally:
+        await file.close()
 
 
 @app.post("/chat")

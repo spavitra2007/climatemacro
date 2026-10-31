@@ -913,6 +913,45 @@
   line-height: 1.6;
 }
 
+.ci-upload-form {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ci-upload-input {
+  position: relative;
+  min-width: 180px;
+  max-width: 260px;
+  min-height: 39px;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 0 11px;
+  border: 1px solid #dce6de;
+  border-radius: 8px;
+  background: white;
+  color: #52665a;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.ci-upload-input span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ci-upload-input input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  opacity: 0;
+}
+
 .ci-index-box .ci-refresh,
 .ci-chat-submit {
   min-height: 39px;
@@ -931,6 +970,26 @@
 
 .ci-index-box .ci-refresh:disabled,
 .ci-chat-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.ci-index-existing {
+  min-height: 39px;
+  padding: 0 10px;
+  border: 1px solid #dce6de;
+  border-radius: 8px;
+  background: white;
+  color: #52665a;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.ci-index-existing:hover:not(:disabled) {
+  background: #f1f8f3;
+}
+
+.ci-index-existing:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -1327,6 +1386,20 @@
   .ci-index-box {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .ci-upload-form {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .ci-upload-input {
+    max-width: none;
+    flex: 1 1 100%;
+  }
+
+  .ci-upload-form > button {
+    flex: 1 1 auto;
   }
 
   .ci-chat-message {

@@ -156,6 +156,7 @@ export default function Dashboard() {
   const [indexing, setIndexing] = useState(false);
   const [indexResult, setIndexResult] = useState(null);
   const [indexError, setIndexError] = useState("");
+  const [documentFile, setDocumentFile] = useState(null);
 
   const loadDashboard = useCallback(async (signal) => {
     setLoading(true);
@@ -252,6 +253,33 @@ export default function Dashboard() {
 
     try {
       setIndexResult(await requestJson("/rag/index", { method: "POST" }));
+    } catch (error) {
+      setIndexError(error.message);
+    } finally {
+      setIndexing(false);
+    }
+  }
+
+  async function uploadDocument(event) {
+    event.preventDefault();
+    if (!documentFile || indexing) return;
+    const form = event.currentTarget;
+
+    setIndexing(true);
+    setIndexError("");
+    setIndexResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", documentFile);
+      setIndexResult(
+        await requestJson("/rag/upload", {
+          method: "POST",
+          body: formData,
+        })
+      );
+      setDocumentFile(null);
+      form.reset();
     } catch (error) {
       setIndexError(error.message);
     } finally {
@@ -574,11 +602,37 @@ export default function Dashboard() {
               <div className="ci-index-box">
                 <div>
                   <strong>Climate document library</strong>
-                  <p>Index PDFs placed in the project’s <code>documents/</code> folder before asking questions.</p>
+                  <p>Upload a PDF (up to 20 MB) to save it and index it for climate questions.</p>
                 </div>
-                <button className="ci-refresh" onClick={indexDocuments} disabled={indexing}>
-                  {indexing ? "Indexing…" : "Index documents"}
-                </button>
+                <form className="ci-upload-form" onSubmit={uploadDocument}>
+                  <label className="ci-upload-input">
+                    <span>{documentFile?.name || "Choose a PDF"}</span>
+                    <input
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      aria-label="Choose a climate PDF"
+                      onChange={(event) =>
+                        setDocumentFile(event.target.files?.[0] || null)
+                      }
+                      disabled={indexing}
+                    />
+                  </label>
+                  <button
+                    className="ci-refresh"
+                    type="submit"
+                    disabled={indexing || !documentFile}
+                  >
+                    {indexing ? "Saving and indexing…" : "Upload & index"}
+                  </button>
+                  <button
+                    className="ci-index-existing"
+                    type="button"
+                    onClick={indexDocuments}
+                    disabled={indexing}
+                  >
+                    Re-index saved PDFs
+                  </button>
+                </form>
               </div>
               {indexError && <p className="ci-inline-error" role="alert">{indexError}</p>}
               {indexResult && (

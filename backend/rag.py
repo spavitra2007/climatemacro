@@ -15,8 +15,12 @@ from pypdf import PdfReader
 # --------------------------------------------------
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DOCUMENTS_DIR = PROJECT_ROOT / "documents"
-CHROMA_DIR = PROJECT_ROOT / "chroma_db"
+DOCUMENTS_DIR = Path(
+    os.getenv("DOCUMENTS_DIR", str(PROJECT_ROOT / "documents"))
+)
+CHROMA_DIR = Path(
+    os.getenv("CHROMA_DIR", str(PROJECT_ROOT / "chroma_db"))
+)
 
 load_dotenv(PROJECT_ROOT / ".env")
 
@@ -117,20 +121,23 @@ def embed_text(text: str) -> list[float]:
 # 7. INDEX PDF DOCUMENTS
 # --------------------------------------------------
 
-def index_pdfs():
+def index_pdfs(
+    pdf_paths: list[Path] | None = None,
+    source_names: dict[Path, str] | None = None,
+):
 
-    print("DEBUG: Starting PDF indexing")
-    print("DEBUG: Documents folder:", DOCUMENTS_DIR)
-    print("DEBUG: Folder exists:", DOCUMENTS_DIR.exists())
+    print("Starting PDF indexing")
+    print("Documents folder:", DOCUMENTS_DIR)
+    print("Folder exists:", DOCUMENTS_DIR.exists())
 
     DOCUMENTS_DIR.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    pdf_files = list(DOCUMENTS_DIR.glob("*.pdf"))
+    pdf_files = pdf_paths if pdf_paths is not None else list(DOCUMENTS_DIR.glob("*.pdf"))
 
-    print("DEBUG: PDFs found:", [p.name for p in pdf_files])
+    print("PDFs found:", [p.name for p in pdf_files])
 
     if not pdf_files:
         return {
@@ -144,6 +151,7 @@ def index_pdfs():
 
         try:
             reader = PdfReader(str(pdf_path))
+            file_chunk_count = 0
 
             for page_number, page in enumerate(
                 reader.pages,
@@ -163,6 +171,7 @@ def index_pdfs():
                     existing = collection.get(ids=[record_id])
 
                     if existing["ids"]:
+                        file_chunk_count += 1
                         continue
 
                     embedding = embed_text(chunk)
@@ -172,12 +181,21 @@ def index_pdfs():
                         documents=[chunk],
                         embeddings=[embedding],
                         metadatas=[{
-                            "source": pdf_path.name,
+                            "source": (source_names or {}).get(
+                                pdf_path, pdf_path.name
+                            ),
                             "page": page_number,
                         }],
                     )
 
                     indexed_chunks += 1
+                    file_chunk_count += 1
+
+            if file_chunk_count == 0:
+                failed_files.append({
+                    "file": pdf_path.name,
+                    "error": "No extractable text found in this PDF.",
+                })
 
         except errors.APIError as exc:
 
