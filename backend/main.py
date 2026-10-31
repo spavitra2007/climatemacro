@@ -29,6 +29,7 @@ frontend_origins = [
     for origin in os.getenv("FRONTEND_ORIGINS", "").split(",")
     if origin.strip()
 ]
+frontend_origins.append("https://climatemacro.netlify.app")
 
 # Keep local development working while allowing the deployed frontend origin.
 app.add_middleware(

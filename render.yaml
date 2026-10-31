@@ -10,7 +10,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.9
       - key: FRONTEND_ORIGINS
-        value: http://localhost:5173,http://127.0.0.1:5173
+        value: http://localhost:5173,http://127.0.0.1:5173,https://climatemacro.netlify.app
       - key: GROQ_API_KEY
         sync: false
       - key: GEMINI_API_KEY
