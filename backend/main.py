@@ -1,4 +1,5 @@
 
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -6,6 +7,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from backend.rag import index_pdfs, ask_climate_question
+
 # Project paths
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_PATH = PROJECT_ROOT / "data" / "processed" / "weather_daily.csv"
@@ -22,13 +24,20 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Allow the React frontend to communicate with this API.
+frontend_origins = [
+    origin.strip()
+    for origin in os.getenv("FRONTEND_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
+# Keep local development working while allowing the deployed frontend origin.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
+    allow_origins=list(dict.fromkeys([
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-    ],
+        *frontend_origins,
+    ])),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
