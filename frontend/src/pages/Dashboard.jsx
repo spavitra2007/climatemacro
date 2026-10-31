@@ -3,7 +3,7 @@ import ClimateMap from "../components/ClimateMap.jsx";
 import "./Dashboard.css";
 
 const API_BASE = (
-  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8010"
+  import.meta.env.VITE_API_BASE_URL || "https://climatemacro.onrender.com"
 ).replace(/\/$/, "");
 
 const navigation = [
